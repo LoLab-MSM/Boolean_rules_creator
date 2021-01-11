@@ -50,7 +50,7 @@ x0 = np.random.rand(N)*100
 #print(x0)
 #exit()
 
-pop_size = 5#150
+pop_size = 150
 generation = 0
 counter = 0
 parallel_sims = 50
