@@ -1,4 +1,3 @@
-from scipy.optimize import differential_evolution, minimize, basinhopping, dual_annealing
 from deap import base, creator, tools
 import file_comparison
 import json
@@ -7,7 +6,6 @@ import itertools as it
 import math
 import os
 import numpy as np
-#from rule_simulator import rule_sim_run
 from rule_creator import creating_rules
 import ast
 from time import time
@@ -15,51 +13,26 @@ from joblib import Parallel, delayed
 import multiprocessing
 import random
 
-'''
-def fitness(alpha,ref=False):
-  # ....
-  return fit
 
-def clbk(xk,convergence):
-    print('clbk: ',xk)
-    return convergence
-+
-bounds = [(0.5,2.0),(0.1,1.0),(1.05,1.4),(0.6,0.95)]
-res = differential_evolution(fitness, bounds, disp=True, callback=clbk, popsize=15)
-'''
-
-
-#def fitness(alpha, ref=False):
-
-
-#problem_size: 8
+#load reference data
 fn_original = 'EMT_paper.json'
+#define the names of the node
 symbols = ['NICD', 'Notch', 'TP53', 'TP63TP73', 'miRNA', 'EMTreg', 'ECM', 'DNAdam']
-
-#problem_size: 4
-#fn_original = 'original_data.json'
-#symbols = ['x1', 'x2', 'x3', 'x4']
-
 
 
 (N, idx_freq) = file_comparison.map_freqs(fn_original)
 
-print(N)
-bounds = np.array([(0, 100)]*N)
-x0 = np.random.rand(N)*100
-#print(x0)
-#exit()
-
+#setup for the genetic optimization algorithm: using 150 individuals for the population
+#this is the unsupervised optimization approach, where the optimizer only picks the number of transitions to remove. 
+#there is still a lot of possible ways which of these states to remove 
+#there are 50 different random removals considered for the same individual of the genetic algorithm
+#to get the simulation results quicker, we distribute each of these 50 random possibilities of an individual onto its own computational core and let them simulate in parallel
 pop_size = 150
 generation = 0
 counter = 0
 parallel_sims = 50
-'''
-pop_size = 2
-generation = 0
-counter=0
-parallel_sims = 5
-'''
+
+#perform the asynchronous updating scheme by compiling the rules into a C++ file
 def randomized_runs():
     str_rules, rule_list, file_name = creating_rules("modified_freq.json", symbols)
     exe_file = '{}.bin'.format(file_name)
@@ -77,8 +50,7 @@ def randomized_runs():
 
 def fitness(freq_to_change):
     global counter, generation
-
-    #print('here')
+  
     # take params and write file
     # ==========================
     with open(fn_original) as f2:
@@ -95,13 +67,9 @@ def fitness(freq_to_change):
         print(ividx, ivct)
         if ivct > 1:
             print(ividx, ivct)
-            # print(ividx, ivct, key_list[ividx])
             for fr in range(0, ivct):
                 changed_freq[str(key_list[ividx])][fr][1] = freq_to_change[freq_map]*100  # 100 since the freq_to_change here are only within 0 and 1
-                #print(freq_to_change)
-                #exit()
                 print(str(key_list[ividx]), fr, freq_to_change[freq_map])
-                #print(freq_map)
                 freq_map = freq_map + 1
 
     with open("modified_freq.json", "w") as fs:
@@ -111,31 +79,13 @@ def fitness(freq_to_change):
     # =======
     rms = 100.0
 
-    #num_cores = int(multiprocessing.cpu_count()/2)
     num_cores = 50
     print('using {} cores'.format(num_cores))
     a = time()
     results = Parallel(n_jobs=num_cores)(delayed(randomized_runs)() for i in range(parallel_sims))
     print('parallel region took {}'.format(time()-a))
-    #print(results)
-
+    
     fs_fitrules = open("optimization_output/fitness-{}-{}.txt".format(str(generation).zfill(3),str(counter).zfill(3)),"w")
-
-
-    #for __run in range(0, parallel_sims):
-    """    
-        #os.system('python rule_creator.py')
-        str_rules, rule_list = creating_rules("modified_freq.json", symbols)
-        os.system('time g++ -O3 -fopenmp c_simulator.cpp -ljsoncpp && ./a.out')
-        os.remove("c_simulator.cpp")
-        with open('simulation_cpp.json') as fs:
-            freq_multiple_ss = json.load(fs)
-        fs.close()
-        #freq_multiple_ss = rule_sim_run()
-        print(freq_multiple_ss)
-
-        rms_new = file_comparison.comparator(freq_multiple_ss)
-    """
 
     for rms_new, freq_multiple_ss, str_rules, rule_list in results:
         rms_file.write('  {}\n'.format(rms_new))
@@ -193,9 +143,6 @@ def clbk2(xk):
     return False
 
 
-#res = minimize(fitness, x0, method='Nelder-Mead', jac='2-point', callback=clbk2, options={'disp':True,'xtol':1.0, 'ftol':1.0})
-#res = basinhopping(fitness, bounds, stepsize=20, minimizer_kwargs={'method':'Nelder-Mead'})
-
 # ==================perform the optimization here!!!!!!========================
 
 # using DEAP optimizer
@@ -211,10 +158,7 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 #set up genetic optimizer functions
 toolbox.register("evaluate", fitness)
 toolbox.register("mate", tools.cxTwoPoint)
-#toolbox.register("mate", tools.cxUniform, indpb=0.5)
-#toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
 toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, eta=20.0, indpb=0.1)
-#toolbox.register("mutate", tools.mutUniformInt, low=0, up=100, indpb=0.05)
 toolbox.register("select", tools.selTournament, tournsize=15)
 
 
@@ -250,7 +194,7 @@ def do_the_opt_dance():
         # simple example, step 2&3: Apply crossover and mutation on the offspring
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
             if random.random() < CXPB:
-                toolbox.mate(child1, child2) # mating with Uniform distribution -> set probability to mate to 25%
+                toolbox.mate(child1, child2) 
                 del child1.fitness.values
                 del child2.fitness.values
         # the mutation of the prdocut children with a certain probability of CXPB and MUTPB.
@@ -262,11 +206,11 @@ def do_the_opt_dance():
         # Content of some of our offspring changed during last step -> need to re-evaluate their fitnesses (just map those offspring with fitnesses where marked invalid)
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        #print(invalid_ind)
-        #exit()
+
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
+            
         # Replace the old population by the offspring
         pop[:] = offspring
         ind_min = 10000
@@ -282,8 +226,6 @@ def do_the_opt_dance():
        
         fs_min.flush()
         fs_max.flush()
- 
-        #exit()
 
     fs_min.close()
     fs_max.close()
@@ -292,18 +234,5 @@ def do_the_opt_dance():
 
 rms_file = open("rms_fit.txt", "w+")
 do_the_opt_dance()
-#exit()
-
-
-# old naive optimizer
-#res = differential_evolution(fitness, bounds, popsize=pop_size, mutation=[0.2,0.6], disp=True, callback=clbk, polish=False, strategy='rand1exp')
-#res = dual_annealing(fitness, bounds, callback=clbk3, no_local_search=True)
 
 rms_file.close()
-
-
-
-
-
-
-
