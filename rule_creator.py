@@ -468,6 +468,9 @@ symbols = []
 
 
 # =================create rules with human guided input======================
+# note that this section uses already pre-prosessed files, where the dependencies
+# have been eliminated - the optimizer only decides on the states to remove due
+# to the self-dependency removal process
 
 def get_pattern(element, not_elim):
     pattern = []
@@ -533,6 +536,7 @@ def select_rules_human_guided(perc, _symbols):
     n = len(symbols)
     a = time()
 
+    # these files are already preprocessed from the files EMT_incbw_ruleX.txt (i.e., the full network possible), using the script sort_list.py
     workfile1 = 'EMT_userguided_rule1.txt'
     workfile2 = 'EMT_userguided_rule2.txt'
     workfile3 = 'EMT_userguided_rule3.txt'
@@ -564,14 +568,10 @@ def select_rules_human_guided(perc, _symbols):
         read_data = f.read()
     rule6 = list(eval(read_data))
 
-
+    # here, the self-elimination is performed!
 
     # NICD (0) depends on Notch (1), TP53 (2), TP63 (3)
-    #print(rule1)
-    #exit()
     rule_NICD = self_elimination(rule1, 0, [1, 2, 3], perc[0])
-    #Sprint(rule_NICD)
-    #exit()
 
     # Notch (1) depends on ECM (6), miRNA (4)
     rule_Notch = self_elimination(rule2, 1, [4, 6], perc[1])
@@ -591,14 +591,6 @@ def select_rules_human_guided(perc, _symbols):
     simple_rulelist = [rule_NICD, rule_Notch, rule_TP53, rule_TP63, rule_miRNA, rule_EMTreg, [], []]
 
     rules = ['' for i in range(len(symbols))]
-    #print(simple_rulelist)
-    #exit()
-
-    #f = open("rules.txt", "w+")
-
-    #for k in range(n):
-    #    f.write(symbols[k]+ ' = False\n')
-
 
     # Sympy
     str_rules = ""
@@ -606,20 +598,13 @@ def select_rules_human_guided(perc, _symbols):
 
     for k in range(n):
         ruletext = []
-        #print(simple_rulelist)
-        #exit()
         for j in range(len(simple_rulelist[k])):
             ruletext.append(' & '.join(['{}{}'.format('' if simple_rulelist[k][j][i] == 1 else ' ~', symbols[i]) for i in range(n)]))
             ruletext[j] = "(" + ruletext[j] + ")"
-        #print(ruletext)
-        #exit()
+
         if ruletext!=[]:
-            #rules[k] = 'Xor(' + ' | '.join(ruletext) + r',{})'.format(symbols[k])
             rules[k] = ' | '.join(ruletext)
-            #print(len(rulelist[k]))
             rules[k] = "Xor((" + rules[k] + "), " + symbols[k] + ")"
-            #print(rules[k])
-            #exit()
 
             # C++ output
             str_rules_cpp += '    if(k=={})\n'.format(k)
@@ -628,26 +613,18 @@ def select_rules_human_guided(perc, _symbols):
                 str_rule_cpp = str_rule_cpp.replace(sym,"x[{}]".format(sym_idx))
             str_rules_cpp += '        return {};\n'.format(str_rule_cpp)
 
-            # print("rules[k] ", rules[k])
-            #rules[k] = parse_expr(rules[k])
-            #rules[k] = to_dnf(rules[k], True)
             rules[k] = str(rules[k]).replace('&', 'and').replace('|', 'or').replace('~', 'not ')
         else:
             rules[k] = symbols[k]
             str_rules_cpp += '    if(k=={0})\n        return x[{0}];\n'.format(k)
-        #print('1: {}* = {}'.format(symbols[k], rules[k]))
-        #exit()
-        str_rule = '1: {}* = {}\n'.format(symbols[k], rules[k])
-        #f.write(str_rule)
-        str_rules += str_rule
-    #f.close()
 
-    #print(str_rules_cpp)
+        str_rule = '1: {}* = {}\n'.format(symbols[k], rules[k])
+        str_rules += str_rule
+
     with open("c_simulator.cpp_template") as fs_cpp:
         str_cpp = fs_cpp.read()
 
     fs_cpp = tempfile.NamedTemporaryFile(mode='w', delete=False)
-    #with open("/tmp/c_simulator-{}.cpp", "w") as fs_cpp:
     fs_cpp.write(str_cpp.replace('{0}',str(len(symbols))).replace('{1}',str_rules_cpp))
     fs_cpp.flush()
     os.fsync(fs_cpp.fileno())
@@ -666,28 +643,16 @@ def creating_rules(fn, _symbols):
     a = time()
 
     [data, SS] = read_steady_states(fn)
-    #[data, SS] = read_steady_states("SCLC_10_nodes.json")
-    #[data, SS] = read_steady_states("EMT_incbw.json")
-    #[data, SS] = read_steady_states("EMT_nobw.json")
 
     print_SS(SS)
-    #check_ss(SS)
-
     ss_info = SSInfo(data)
-    #ss_info.print()
-    #ss_info.check_reachability(blacklist=[((1, 1, 1), 0)])
-    #ss_info.check_reachability(blacklist=[])
 
-    #print(ss_info.create_rules())
-    #print(ss_info.create_rules())
-    #rulelist = ss_info.create_rules(backwardpaths=1, blacklist=[((1, 1, 1), 0)])
     print('create rules \n')
     rulelist = ss_info.create_rules(backwardpaths=1, blacklist=[])
 
     n = len(symbols)
     blacklisted  = [(x,6) for x in it.product(range(2), repeat=n)]
     blacklisted += [(x,7) for x in it.product(range(2), repeat=n)]
-    #print(blacklisted)
 
     simple_rulelist = [[] for _ in range(n)]
     for i in range(len(simple_rulelist)):
@@ -698,31 +663,10 @@ def creating_rules(fn, _symbols):
     for i in range(len(simple_rulelist)):
         print("rule ", i, len(simple_rulelist[i]))
 
-    # add expert knowledge pathways
-    #rulelist[0].append((1, 1, 1, 0))
-    #rulelist[2].append((1, 1, 0, 0))
-    #print(rulelist)
-    #print(rulelist[0][0])
-    #print(rulelist[0][0][3])
-
-
-    # ============== create multiple rulesets =============
-
-    #print(simple_rulelist)
-    #rule_manipulation(simple_rulelist, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 10)
-
-
-    #exit()
 
     # ============== reorder/simplify rules ===============
 
-    #n = len(active_SS)
     rules = ['' for i in range(n)]
-
-    #f = open("rules.txt", "w+")
-
-    #for k in range(n):
-    #    f.write(symbols[k]+ ' = False\n')
 
     # Sympy
     str_rules = ""
@@ -734,9 +678,7 @@ def creating_rules(fn, _symbols):
             ruletext.append(' & '.join(['{}{}'.format('' if rulelist[k][j][i] == 1 else ' ~', symbols[i]) for i in range(n)]))
             ruletext[j] = "(" + ruletext[j] + ")"
         if ruletext!=[]:
-            #rules[k] = 'Xor(' + ' | '.join(ruletext) + r',{})'.format(symbols[k])
             rules[k] = ' | '.join(ruletext)
-            #print(len(rulelist[k]))
             rules[k] = "Xor((" + rules[k] + "), " + symbols[k] + ")"
 
             # C++ output
@@ -746,25 +688,19 @@ def creating_rules(fn, _symbols):
                 str_rule_cpp = str_rule_cpp.replace(sym,"x[{}]".format(sym_idx))
             str_rules_cpp += '        return {};\n'.format(str_rule_cpp)
 
-            # print("rules[k] ", rules[k])
-            #rules[k] = parse_expr(rules[k])
-            #rules[k] = to_dnf(rules[k], True)
             rules[k] = str(rules[k]).replace('&', 'and').replace('|', 'or').replace('~', 'not ')
         else:
             rules[k] = symbols[k]
             str_rules_cpp += '    if(k=={0})\n        return x[{0}];\n'.format(k)
         print('1: {}* = {}'.format(symbols[k], rules[k]))
         str_rule = '1: {}* = {}\n'.format(symbols[k], rules[k])
-        #f.write(str_rule)
         str_rules += str_rule
-    #f.close()
 
     print(str_rules_cpp)
     with open("c_simulator.cpp_template") as fs_cpp:
         str_cpp = fs_cpp.read()
 
     fs_cpp = tempfile.NamedTemporaryFile(mode='w', delete=False)
-    #with open("/tmp/c_simulator-{}.cpp", "w") as fs_cpp:
     fs_cpp.write(str_cpp.replace('{0}',str(len(symbols))).replace('{1}',str_rules_cpp))
     fs_cpp.flush()
     os.fsync(fs_cpp.fileno())
@@ -776,7 +712,5 @@ def creating_rules(fn, _symbols):
 
 if __name__ == '__main__':
     creating_rules('modified_freq.json', ["x1","x2","x3","x4"])
-
-    #print(ruletext)
 
 
