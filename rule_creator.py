@@ -192,18 +192,16 @@ def apply_rule(state, state_list):
 
 def check_validity_of_removal(initial_state, states_list, ss):
     maxdepth = 2 ** (len(ss))
-    #state_list_flat = [item for sublist in states_list for item in sublist]  # flatten the list
-    #state_list_flat = list(dict.fromkeys(state_list_flat))  # remove duplicates
 
     paths = [initial_state]
     for i in range(1, maxdepth):
         paths = [apply_rule(state, states_list) for state in paths]
         paths = [item for sublist in paths for item in sublist]  # flatten the list
         paths = list(dict.fromkeys(paths))  # remove duplicates
-        #print(initial_state, paths, ss)
+
         if ss in paths:
-            #print("ss in paths")
             return True
+        
     return False
 
 
@@ -251,35 +249,24 @@ class Targets:
         dbg_ct=0
         for state in ivs:
             dbg_ct+=1
-            #print('looking at state',state,dbg_ct,len(ivs))
             ct = sum([x.count(state) for x in new_rules])
             keep_rules = math.ceil(freq[freq_pos]/perc)#*0.4)
-            #print(keep_rules, freq[freq_pos])
-            #exit()
+
             if keep_rules > maxrules:
                 keep_rules = maxrules
             if ct > keep_rules:
                 i = 0
                 rule_choice = list(range(len(symbols)))
                 rule_choice = [m for m in range(len(symbols)) if state in new_rules[m]]
-                #print(rule_choice)
-                #exit()
-                #for i in range(ct-keep_rules):
+
                 while i < ct-keep_rules and len(rule_choice)>0:
                     check_rules = copy.deepcopy(new_rules)
                     choose_rule = random.choice(rule_choice)
-                    #print(choose_rule)
-                    #while state not in new_rules[choose_rule]:
-                    #    rule_choice.remove(choose_rule)
-                    #    choose_rule = random.choice(rule_choice)
                     check_rules[choose_rule].remove(state)
                     for tgt in self.targets:
-                        #print("chose: ", state, choose_rule)
-                        #print("chose: ", state, choose_rule, check_validity_of_removal(state, check_rules, tgt))
                         if check_validity_of_removal(state, check_rules, tgt) == True:
                             new_rules[choose_rule].remove(state)
                             i = i+1
-                            #rule_choice.remove(choose_rule)
                             break
                     rule_choice.remove(choose_rule)
 
@@ -289,8 +276,6 @@ class Targets:
 
     def create_rules(self, available_states, frequencies, backwardpaths, blacklist):
         rule_list = [[] for i in symbols]
-        #print(len(available_states), frequencies)
-        #exit()
         a = time()
         for ss in self.targets:
             print('tgts: {}', len(self.targets), len(available_states), len(ss), backwardpaths, blacklist)
@@ -336,11 +321,9 @@ class CombSS:
         rule_list = [[] for i in symbols]
         for tgt in self.targets:
             frequencies = [get_freq(iv, tgt.ss, data) for iv in self.ivs]
-            # print(frequencies)
             rules = tgt.create_rules(self.ivs, frequencies, backwardpaths, blacklist)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
-        #exit()
         return rule_list
 
 
@@ -374,23 +357,13 @@ class SSInfo:
         print('Finished creating SSInfo object.')
         print('================================')
 
-    #def print(self):  # print function that gives the info of the object
-    #    print('\t\t')
-    #    print('your SSInfo object created by your data:')
-    #    for css in self.comb_steadystates:
-    #        print(' ss={}   ivs={}'.format(css.sss(), css.ivs))
-    #        for target in css.targets:
-    #            print('\t ss={}    targets={}'.format(target.ss, target.targets))
-    #    print('\t')
-
-    def check_reachability(self, blacklist): #LE
+    def check_reachability(self, blacklist): 
         for css in self.comb_steadystates:
-            css.check_reachability(blacklist) #LE
+            css.check_reachability(blacklist) 
 
-    def create_rules(self, backwardpaths, blacklist): #LE
+    def create_rules(self, backwardpaths, blacklist): 
         print(len(self.data),len(symbols))
         a = time()
-        #random.seed(128)
         rule_list = [[] for i in symbols]
         for css in self.comb_steadystates:
             rules = css.create_rules(backwardpaths, blacklist, self.data)
@@ -421,9 +394,7 @@ def lst_or(a,b):
     result = False
     for i in range(len(a)):
         result = result or (a[i]>b[i])
-        #print(a[i], b[i], a[i]>b[i], result)
-
-    #print('result: ', result)
+        
     return result
 
 # start with the full backward-pathway system & eliminate states from
@@ -438,7 +409,6 @@ def rule_manipulation(bw_rules, percentages, simulations):
         transition_states = []
         states_count = []
         rule_length = [0]*n
-        #print(rule_length)
 
         for i in range(n):
             rule_length[i] = len(bw_rulelist[i])
@@ -475,17 +445,13 @@ def rule_manipulation(bw_rules, percentages, simulations):
         rules = ['' for i in range(n)]
         for k in range(n):
             ruletext = []
-            #rulelist[k] = list(set(rulelist[k]))
             for j in range(len(bw_rulelist[k])):
                 ruletext.append(
                     ' & '.join(['{}{}'.format('' if bw_rulelist[k][j][i] == 1 else ' ~', symbols[i]) for i in range(n)]))
                 ruletext[j] = "(" + ruletext[j] + ")"
             if ruletext != []:
-                # rules[k] = 'Xor(' + ' | '.join(ruletext) + r',{})'.format(symbols[k])
                 rules[k] = ' | '.join(ruletext)
-                # print(len(rulelist[k]))
                 rules[k] = "Xor((" + rules[k] + "), " + symbols[k] + ")"
-                # print("rules[k] ", rules[k])
                 rules[k] = parse_expr(rules[k])
                 rules[k] = to_dnf(rules[k], True)
                 rules[k] = str(rules[k]).replace('&', 'and').replace('|', 'or').replace('~', 'not ')
@@ -500,6 +466,7 @@ def rule_manipulation(bw_rules, percentages, simulations):
 
 symbols = []
 
+
 # =================create rules with human guided input======================
 
 def get_pattern(element, not_elim):
@@ -508,17 +475,15 @@ def get_pattern(element, not_elim):
         pattern.append(element[i])
     return  pattern
 
-
 def slist(a, idx):
     return [a[i] for i in idx]
-
 
 def self_elimination(rule_list, pos, not_elim, perc):
     result_list = []
     patterns = []
     tmp_lst = []
     tmp2_lst = []
-    #print(rule_list)
+    
     for b in rule_list:
         newtup = []
 
@@ -530,7 +495,6 @@ def self_elimination(rule_list, pos, not_elim, perc):
             else:
                 newtup.append(b[bit])
         tup_newtup = tuple(newtup)
-        #print(tup_newtup)
         if tup_newtup not in rule_list:
             result_list.append(b)
         else:
@@ -540,10 +504,6 @@ def self_elimination(rule_list, pos, not_elim, perc):
                 #print(patterns)
                 tmp_lst.append([a for a in rule_list if slist(a, not_elim) == p])
 
-
-        #print(newtup)
-    #print(tmp_lst)
-    #exit()
     possible_combinations = len(tmp_lst)
     all_combinations = [a for a in it.product([0, 1], repeat=possible_combinations)]
 
@@ -556,15 +516,10 @@ def self_elimination(rule_list, pos, not_elim, perc):
     tmp = []
     for j in range(len(tmp_lst)):
         tmp.append([a for a in tmp_lst[j] if a[pos] == all_combinations[acceptance_state][j]])
-        #print(tmp)
-    #print(tmp)
-    #exit()
+
     tmp.append(result_list)
-    #print(tmp)
-    #exit()
     tmp2_lst.append([val for sublist in tmp for val in sublist])
-    #print(tmp2_lst)
-    #exit()
+
     return tmp2_lst[0]
 
 
@@ -587,38 +542,29 @@ def select_rules_human_guided(perc, _symbols):
 
     with open(workfile1, 'r') as f:
         read_data = f.read()
-
     rule1 = list(eval(read_data))
 
     with open(workfile2, 'r') as f:
         read_data = f.read()
-
     rule2 = list(eval(read_data))
 
     with open(workfile3, 'r') as f:
         read_data = f.read()
-
     rule3 = list(eval(read_data))
 
     with open(workfile4, 'r') as f:
         read_data = f.read()
-
     rule4 = list(eval(read_data))
 
     with open(workfile5, 'r') as f:
         read_data = f.read()
-
     rule5 = list(eval(read_data))
 
     with open(workfile6, 'r') as f:
         read_data = f.read()
-
     rule6 = list(eval(read_data))
 
-    #rule = [rule1, rule2, rule3, rule4, rule5, rule6, [], []]
-    #print(rule)
-    #print("perc: ", perc)
-    #exit()
+
 
     # NICD (0) depends on Notch (1), TP53 (2), TP63 (3)
     #print(rule1)
