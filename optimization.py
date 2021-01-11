@@ -37,6 +37,9 @@ def randomized_runs():
     str_rules, rule_list, file_name = creating_rules("modified_freq.json", symbols)
     exe_file = '{}.bin'.format(file_name)
     json_file = '{}.json'.format(file_name)
+    ###########################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!############################
+    #please set the necessary links and C++ compiler according to your own system!!!!!
+    ####################################################################################
     os.system('time g++ -DOUTPUT_FILE=\\"{2}\\" /home/martina/jsoncpp-master/jsoncpp-master/dist/jsoncpp.cpp -I/home/martina/jsoncpp-master/jsoncpp-master/dist/json  -O3 -fopenmp -x c++ {0} -o {1} && {1}'.format(file_name,exe_file,json_file))
     with open(json_file) as fs:
         freq_multiple_ss = json.load(fs)
