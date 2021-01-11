@@ -29,7 +29,6 @@ def sublist(a, idx):
     return [a[i] for i in idx]
 
 def check_and_swap_bit_same(rule_list, pos, not_elim):
-	#available_states = rule_list.copy()
 	result_list = []
 	patterns = []
 	tmp_lst = []
@@ -57,33 +56,6 @@ def check_and_swap_bit_same(rule_list, pos, not_elim):
 
 	possible_combinations = len(tmp_lst)	
 	all_combinations = [a for a in itertools.product([0, 1], repeat=possible_combinations)]	
-	#print([a for a in])
-	#print(tmp_lst, possible_combinations)
-	#for j in [0, 1]:
-	
-	#print(tmp_lst)
-
-	'''
-	#======= asymmetric: eliminate all 1
-	tmp=[]
-	for i in range(len(tmp_lst)):
-		tmp.append([a for a in tmp_lst[i] if a[pos] == 0]) #only include 0
-	tmp.append(result_list)
-	tmp2_lst.append([val for sublist in tmp for val in sublist])
-	return tmp2_lst
-
-	'''
-	'''
-	#======= asymmetric: eliminate all 0
-	tmp=[]
-	for i in range(len(tmp_lst)):
-		tmp.append([a for a in tmp_lst[i] if a[pos] == 1]) #only include 1
-	tmp.append(result_list)
-	tmp2_lst.append([val for sublist in tmp for val in sublist])
-
-
-	return tmp2_lst
-	'''
 
 	#======= asymmetric: eliminate random
 	tmp=[]
@@ -96,29 +68,7 @@ def check_and_swap_bit_same(rule_list, pos, not_elim):
 
 	return tmp2_lst
 	
-	'''
-	exit()	
-	
-	for j in all_combinations:
-		tmp = []
-		for i in range(possible_combinations):
-		#mache liste aller moeglichen kombinationen (i.e., schmeisse 0 0 0 0, 0 0 0 1, 0 0 1 0, 0 0 1 1, ... raus
-			tmp.append([a for a in tmp_lst[i] if a[pos] == j[i]])
-		tmp.append(result_list)
-		tmp2_lst.append([val for sublist in tmp for val in sublist])
-
-	#print(tmp2_lst)
-
-	print(len(tmp2_lst))
-	print(tmp2_lst)
-	#exit()
-	return tmp2_lst
-	#exit()
-	#print(tmp2_lst)			
-	#exit()
-	#return result_lists
-	'''
-
+#the elimination of transitions starts with the full backward model transition lists	
 for rule_nr in [1,2,3,4,5,6]: 
 	if rule_nr == 1:
 		workfile = 'EMT_incbw_rule1.txt'
@@ -137,7 +87,6 @@ for rule_nr in [1,2,3,4,5,6]:
 		read_data = f.read()
 
 	rule = eval(read_data)
-	#print(rule)
 
 	list_NICD = []
 	list_Notch = []
@@ -152,84 +101,60 @@ for rule_nr in [1,2,3,4,5,6]:
 	if rule_nr == 1:
 		# NICD depends on Notch (1), TP53 (2), TP63 (3), 
 		# no NICD (0), miRNA (4), EMTreg (5), ECM (6), DNAdam(7)
-
 		list_miRNA = check_and_swap_bit(rule, 4)
 		list_EMTreg = check_and_swap_bit(list_miRNA, 5)
 		list_ECM = check_and_swap_bit(list_EMTreg, 6)
 		list_DNAdam = check_and_swap_bit(list_ECM, 7)
 
-		#list_NICD = check_and_swap_bit_same(list_DNAdam,0,[1,2,3])
-
-		#new_set = list_NICD
 		new_set = list_DNAdam
 		
 	elif rule_nr == 2:
 		# Notch depends on ECM (6), miRNA (4), 
 		# no NICD (0), Notch(1), TP53 (2), TP63 (3), EMTreg(5), DNAdam(7)
-
 		list_NICD = check_and_swap_bit(rule, 0)
 		list_TP53 = check_and_swap_bit(list_NICD, 2)
 		list_TP63 = check_and_swap_bit(list_TP53, 3)
 		list_EMTreg = check_and_swap_bit(list_TP63, 5)
 		list_DNAdam = check_and_swap_bit(list_EMTreg, 7)
 
-		#list_Notch = check_and_swap_bit_same(list_DNAdam, 1, [4,6])
-
-		#new_set = list_Notch
 		new_set = list_DNAdam
 
 	elif rule_nr == 3:
 		# TP53 depends on DNAdam (7), NICD (0), miRNA (4), EMTreg (5), TP63_TP73 (3)
 		# no Notch (1), TP53 (2), ECM (6)
-
 		list_Notch = check_and_swap_bit(rule, 1)
 		list_ECM = check_and_swap_bit(list_Notch, 6)
-		
-		#list_TP53 = check_and_swap_bit_same(list_ECM, 2, [0, 3, 4, 5, 7])
-		
-		#new_set = list_TP53
+
 		new_set = list_ECM
 
 	elif rule_nr == 4:
 		# TP63 depends on DNAdam (7), miRNA (4), NICD (0), TP53 (2)
 		# no Notch (1), TP63 (3), EMTreg(5), ECM (6)
-
 		list_Notch = check_and_swap_bit(rule, 1)
 		list_EMTreg = check_and_swap_bit(list_Notch, 5)
 		list_ECM = check_and_swap_bit(list_EMTreg, 6)
 
-		#list_TP63 = check_and_swap_bit_same(list_ECM, 3, [0, 2, 4, 7])
-
-		#new_set = list_TP63
 		new_set = list_ECM
 
 	elif rule_nr == 5:
 		# miRNA depends on  TP53 (2), TP63_TP73 (3), EMTreg (5)
 		# no NICD (0), Notch (1), miRNA (4), ECM (6), DNAdam (7)
-
 		list_NICD = check_and_swap_bit(rule, 0)
 		list_Notch = check_and_swap_bit(list_NICD, 1)
 		list_ECM = check_and_swap_bit(list_Notch, 6)
 		list_DNAdam = check_and_swap_bit(list_ECM, 7)
 
-		#list_miRNA = check_and_swap_bit_same(list_DNAdam, 4, [2, 3, 5])
-
-		#new_set = list_miRNA
 		new_set = list_DNAdam		
 
 	elif rule_nr == 6:
 		# EMTreg depends on  NICD (0), miRNA (4)
 		# no Notch (1), TP53 (2), TP63 (3), EMTreg (5), ECM (6), DNAdam (7)
-
 		list_Notch = check_and_swap_bit(rule, 1)
 		list_TP53 = check_and_swap_bit(list_Notch, 2)
 		list_TP63 = check_and_swap_bit(list_TP53, 3)
 		list_ECM = check_and_swap_bit(list_TP63, 6)
 		list_DNAdam = check_and_swap_bit(list_ECM, 7)
-		
-		#list_EMTreg = check_and_swap_bit_same(list_DNAdam, 5, [0, 4])
-		
-		#new_set = list_EMTreg
+
 		new_set = list_DNAdam
 
 	with open('EMT_userguided_rule'+str(rule_nr)+'.txt', 'w') as f:
