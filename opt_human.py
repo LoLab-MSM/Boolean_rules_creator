@@ -15,21 +15,23 @@ import random
 
 #load reference data
 fn_original = 'EMT_paper.json'
+#define the names of the node
 symbols = ['NICD', 'Notch', 'TP53', 'TP63TP73', 'miRNA', 'EMTreg', 'ECM', 'DNAdam']
 
 
 (N, idx_freq) = file_comparison.map_freqs(fn_original)
+#since ECM and DNAdam are parameters, there only need rules to be found for 6 species
 N = 6
 
-bounds = np.array([(0, 100)]*N)
-x0 = np.random.rand(N)*100
-
+#setup for the genetic optimization algorithm: using 150 individuals for the population
+#in this case, we do not include parallelization, since there is no random element in the optimization process
 pop_size = 150
 generation = 0
 counter = 0
 parallel_sims = 1
 
 
+#perform the asynchronous updating scheme by compiling the rules into a C++ file
 def randomized_runs(perc):
     str_rules, rule_list, file_name = select_rules_human_guided(perc, symbols)
     exe_file = '{}.bin'.format(file_name)
@@ -44,17 +46,12 @@ def randomized_runs(perc):
     os.remove(exe_file)
     os.remove(json_file)
 
-    #print("file comparison: ", file_comparison.comparator(freq_multiple_ss, fn_original))
-    #print("freq_multiple_ss: ", freq_multiple_ss)
-    #print("str_rules: ", str_rules)
-    #exit()
-
     return file_comparison.comparator(freq_multiple_ss, fn_original), freq_multiple_ss, str_rules, rule_list
+
 
 def fitness(perc_to_change):
     global counter, generation
 
-    #print('here')
     # take params and write file
     # ==========================
     with open(fn_original) as f2:
@@ -62,27 +59,17 @@ def fitness(perc_to_change):
 
     number_of_combinations = 6
 
-
     # run SSA
     # =======
     rms = 100.0
 
-    #num_cores = int(multiprocessing.cpu_count()/2)
     num_cores = 1
     print('using {} cores'.format(num_cores))
     a = time()
-    #print("perc_to_change", perc_to_change)
-    #exit()
-    #results = Parallel(n_jobs=num_cores)(delayed(lambda: randomized_runs(perc_to_change))() for i in range(parallel_sims))
     rms_new, freq_multiple_ss, str_rules, rule_list = randomized_runs(perc_to_change)
-    #print(results)
-    #exit()
-    print('parallel region took {}'.format(time()-a))
-    #print(results)
 
     fs_fitrules = open("optimization_output/fitness-{}-{}.txt".format(str(generation).zfill(3),str(counter).zfill(3)),"w")
 
-    #for rms_new, freq_multiple_ss, str_rules, rule_list in results:
     rms_file.write('  {}\n'.format(rms_new))
     rms_file.flush()
 
@@ -106,7 +93,6 @@ def fitness(perc_to_change):
 
     fs_fitrules.close()
     print(generation, counter)
-    #os.rename("modified_freq.json", "optimization_output/run-{}-{}.json".format(str(generation).zfill(3), str(counter).zfill(3)))
 
     rms_file.write('{}\t{}\t{}\n'.format(counter,rms, perc_to_change))
 
@@ -133,11 +119,8 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 #set up genetic optimizer functions
 toolbox.register("evaluate", fitness)
-#toolbox.register("mate", tools.cxTwoPoint)
 toolbox.register("mate", tools.cxUniform, indpb=0.05)
-#toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
 toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, eta=20.0, indpb=0.1)
-#toolbox.register("mutate", tools.mutUniformInt, low=0, up=1, indpb=0.1)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
 
@@ -145,8 +128,6 @@ def do_the_opt_dance():
     pop = toolbox.population(n=pop_size)  # note: here the population is only between 0 and 1 - this will be multiplied by 100 at the assignment in the fitness fct
     print("pop: ", pop)
     fitnesses = list(map(toolbox.evaluate, pop))  # map evaluation fct with every individual
-    #print("fitnesses: " , fitnesses)
-    #exit()
 
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
@@ -173,7 +154,7 @@ def do_the_opt_dance():
         # simple example, step 2&3: Apply crossover and mutation on the offspring
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
             if random.random() < CXPB:
-                toolbox.mate(child1, child2) # mating with Uniform distribution -> set probability to mate to 25%
+                toolbox.mate(child1, child2) 
                 del child1.fitness.values
                 del child2.fitness.values
         # the mutation of the prdocut children with a certain probability of CXPB and MUTPB.
@@ -185,15 +166,12 @@ def do_the_opt_dance():
         # Content of some of our offspring changed during last step -> need to re-evaluate their fitnesses (just map those offspring with fitnesses where marked invalid)
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        #print(invalid_ind)
-        #exit()
+
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
         # Replace the old population by the offspring
         pop[:] = offspring
-
-
 
 
 
