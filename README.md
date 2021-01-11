@@ -27,6 +27,7 @@ rule_creator.py ... executes the creation of the Boolean rules and also includes
 
 sort_list.py ... takes the files EMT_incbw_ruleX.txt as input and removes the desired dependencies (excluding self-dependencies) which are then saved in the files EMT_userguided_ruleX.txt. If we translate these files into rules, the resulting string would no longer include the species that are eliminated in this file. Self-dependencies, however, are still possible in these lists and are then eliminated in the opt_human.py file.
 
+----------------------------------------------------------------------------------------
 
 To execute these optimizations, we need the python packages deap, json, copy, intertools, math, os, numpy, ast, time, joblib, multiprocessing, and random. 
 The parallel setup is determined by the variable parallel_sims and num_cores, which defines the number of cores used for the simulation.
