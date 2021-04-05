@@ -1,0 +1,112 @@
+// compile using g++ -O3 -fopenmp c_simulator.cpp -ljsoncpp
+#include <cstdint>
+#include <iostream>
+#include <map>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <sstream>
+#include <fstream>
+using namespace std;
+
+#include <json.h>
+#include <omp.h>
+
+
+constexpr int len = {0};
+constexpr int num_repetitions = 100;
+constexpr int num_timesteps = 8000;
+
+bool Xor(bool a, bool b) {
+    return a^b;
+}
+
+bool apply_rule(int k, bitset<len> x) {
+
+{1}
+
+    cout << "ERROR: not enough rules you fool!";
+    exit(1);
+}
+
+string to_string_reverse(uint64_t x) {
+    bitset<len> bits(x);
+    stringstream ss;
+    for(int i=0;i<len;i++) {
+        ss << bits[i];
+    }
+    return ss.str();
+}
+
+Json::Value to_json_array(uint64_t x) {
+    Json::Value list;
+    bitset<len> bits(x);
+    for(int i=0;i<len;i++) {
+        list.append((int)bits[i]);
+    }
+    return list;
+}
+
+int main() {
+    double a = omp_get_wtime();
+
+    //srand(time(NULL));
+    srand(0);
+
+    Json::Value root;
+
+    int64_t num_states = pow(2,len);
+    for(int64_t iv=0;iv<num_states;iv++) {
+
+        //cout << to_string_reverse(iv) << endl;
+
+        Json::Value json_iv;
+        json_iv.append(to_json_array(iv));
+
+        map<int64_t,double> result;
+        //#pragma omp parallel for
+        for(int repetition=0;repetition<num_repetitions;repetition++) {
+
+            int64_t state = iv;
+            for(int timestep=0;timestep<num_timesteps;timestep++) {
+
+                bitset<len> state_bits(state);
+
+                int random_rule = rand()%len;
+                state_bits[random_rule] = apply_rule(random_rule, state_bits);
+
+                state = state_bits.to_ulong();
+            }
+
+            //#pragma omp barrier
+            //{
+                if(result.count(state))
+                    result[state]++;
+                else
+                    result[state] = 1;
+            //}
+        }
+
+        Json::Value ss_list;
+        for(auto it : result) {
+            int64_t ss = it.first;
+            double freq = 100.0*double(it.second)/double(num_repetitions);
+            //cout << "\t" << to_string_reverse(ss) << "\t" << freq << endl;
+
+            Json::Value ss_freq;
+            ss_freq.append(to_json_array(ss));
+            ss_freq.append(freq);
+
+            ss_list.append(ss_freq);
+        }
+        json_iv.append(ss_list);
+
+        root.append(json_iv);
+    }
+
+
+    ofstream fs(OUTPUT_FILE);
+    fs << root << endl;
+    fs.close();
+    cout << "Took: " << omp_get_wtime()-a << endl;
+}

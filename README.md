@@ -1,4 +1,59 @@
 # Boolean_rules_creator
+![](https://img.shields.io/badge/Python-v3.7-informational?style=flat&logo=python&logoColor=white&color=2bbc8a?link=http://https://www.python.org/left&link=http://right) ![](https://img.shields.io/badge/JsonCPP-v11-informational?style=flat&logo=C++&logoColor=white&color=2bbc8a)
+
+
+## Overview
+Welcome to the Boolean_rules_creator, a generalizable unsupervised approach to generate parameter-free, logic-based mechanistic hypotheses of cellular processes, described by multiple discrete states. For reference, see the preprint linked below. <div style="page-break-after: always"></div>
+Unsupervised logic-based mechanism inference for network-driven biological processes 
+(M. Prugger et. al 2020), now available through bioRxiv:
+ https://www.biorxiv.org/content/10.1101/2020.12.15.422874v1.full
+ <div style="page-break-after: always"></div>
+ This tool provides a method of mechanism inference in biological processes where the input states and attractors (steady states) are known.
+ The repository contains two different examples, as described in the paper, looking at Michaelis-Menten (MM) dynamics as a simpler model with 4 nodes, and an Epithelial-to-mesenchymal transition (EMT) model with 7 nodes. Descriptions of these models and their Python scripts can be seen in the README.md in their respective folders
+
+# 	
+## &#128295; Installation
+To begin, clone the repository using Git:
+
+```shell
+> git clone https://github.com/LoLab-VU/Boolean_rules_creator.git
+> cd Boolean_rules_creator
+```
+This can also be done
+Boolean_rules_creator is dependent upon Python libraries DEAP, Numpy, and Sympy, which can be installed usuing pip or conda. 
+```shell
+pip install numpy sympy deap 
+```
+
+In addition, you will need a current version of g++ on your computer to run the C++ compiler. We recommend using JsonCpp, available at https://github.com/open-source-parsers/jsoncpp.
+
+#
+## &#128196; Recreation of results from M. Prugger et. al. 2020
+### Michaelis-Menten Dynamics
+
+For the Michaelis-Menten (MM) dynamics model, there is only one possibly steady state outcome, so the Boolean ruleset can be generation without optimization. In this example, only the rule_creator script is used to recreate the forward, backwards, and expert-guided rulesets.
+<div style="page-break-after: always"></div>
+The Michealis-Menten folder contains a script called 'MM_rules.py' which can be run in Python
+
+```
+cd 
+python MM_rules.py
+```
+This script loads in the file 'MM_steady_states.json', which contains the possible initial and steady states in the folllowing format:
+```
+"[initial state1]:
+    [[[steady state2],100]],
+[initial state2]:
+    [[[steady state3],100]],
+  ...
+```
+The number accompanying each pair of states is the frequency with which the intial state will lead to the steady state. Since there is only one steady state for this system, this frequency is 100 for all intial states.
+##
+The MM_rules.py script is set up to generate the full backward ruleset, but can be easily modified to generate the foward-only and expert-guided rulesets, as laid out in the script. 
+
+
+#
+### EMT Transition
 
 The optimization.py file is the most important run file that includes
   * the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
@@ -34,13 +89,15 @@ The parallel setup is determined by the variable parallel_sims and num_cores, wh
 To be able to run the C++ compiler, please make sure to have a current version of g++ on your computer, and link to the correct libraries in your system.
 
 once the environment is set up, the code can be run using
-
-    python optimization.py
-
+```sh
+  cd EMT
+  python optimization.py
+```
 or 
-
-    python opt_human.py
-    
+```sh
+  cd EMT
+  python opt_human.py
+```    
 The output is a folder "optimization_output" that stores the results for each created model: 
  * the files "fitness-XXX-XXX.txt" contains the information for each created model. The first three numbers determine the generation of the genetic algorithm, the second three numbers determine the individual of the population. The file itself contains the various random executions of the genetic algorithm (equivalent to the variable parallel_sims).
 Each entry in these files starts with the computed fitness value, then it displays the determined rules that result in this fitness value in a way such that it can be used to be read by Boolean2Rules. Next, the simulation result for every initial condition is given (this is the same information as is stored and used by the json-files). Finally, we also include the transition list for every rule.
