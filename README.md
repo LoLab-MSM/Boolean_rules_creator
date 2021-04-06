@@ -10,27 +10,30 @@ Unsupervised logic-based mechanism inference for network-driven biological proce
  <div style="page-break-after: always"></div>
  This tool provides a method of mechanism inference in biological processes where the input states and attractors (steady states) are known.
  The repository contains two different examples, as described in the paper, looking at Enzyme-Substrate Kinetics (ES) kinetics as a simpler model with 4 nodes, and an Epithelial-to-mesenchymal transition (EMT) model with 7 nodes. Descriptions of these models and their Python scripts are outlined below.
-# 	
-## &#128295; Installation
-To begin, clone the repository using Git:
+
+----------------------------------------------------------------------------------------
+##  &#128295; Installation
+
+Boolean_rules_creator is dependent upon Python libraries DEAP, Numpy, and Sympy, which can be installed usuing pip or conda. 
+```shell
+pip install numpy sympy deap 
+```
+Once dependencies are installed, clone the repository using Git:
 
 ```shell
 > git clone https://github.com/LoLab-VU/Boolean_rules_creator.git
 > cd Boolean_rules_creator
 ```
-This can also be done
-Boolean_rules_creator is dependent upon Python libraries DEAP, Numpy, and Sympy, which can be installed usuing pip or conda. 
-```shell
-pip install numpy sympy deap 
-```
 
-In addition, you will need a current version of g++ on your computer to run the C++ compiler. We recommend using JsonCpp, available at https://github.com/open-source-parsers/jsoncpp.
 
-#
+In addition, you will need a current version of g++ on your computer to run the C++ compiler. We recommend using JsonCpp, available at https://github.com/open-source-parsers/jsoncpp. Follow the installation instructions there and make sure to also follow the link for the amalgamated source in order add the correct path to optimization.py.
+
+----------------------------------------------------------------------------------------
+
 ## &#128196; Examples from M. Prugger et. al. 2020
 ### Enzyme-Substrate Kinetics
 
-For the ES kinetics model, there is only one possibly steady state outcome, so the Boolean ruleset can be generation without optimization. In this example, only the rule_creator script is used to recreate the forward, backwards, and expert-guided rulesets.
+For the ES kinetics model, there is only one possibly steady state outcome, so the Boolean ruleset can be generated without optimization. In this example, only the creating_rules function from rule_creator.py is used to recreate the forward, backwards, and expert-guided rulesets.
 <div style="page-break-after: always"></div>
 The ES folder contains a Jupyter Notebook ES_rules.ipynb which contains a full walkthrough of the example.
 
@@ -47,21 +50,21 @@ The number accompanying each pair of states is the frequency with which the inti
 
 #
 ### EMT Transition
-For models with more than one steady state, as seen with the EMT model in the paper, model optimization is necessary to generate the correct rule list.
+For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list.
 
 In order to run the optimization, use the 'optimization.py' file, which includes:
   * the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
   * the translation of the newly created rules to C++ and the compilation of the resulting file based on the template c_simluator.cpp_template
   * the execution of the DEAP based genetic algorithm to find an optimal model
 
-In order for this file to run, installation of a C++ compiler is necessary. The path to this compiler must be included in the optimization.py script. Modify this to your system within the script in line 43, as shown below:
+In order for this file to run, installation of a C++ compiler is necessary. See the installation instructions above for more details. The path to this compiler must be included in the optimization.py script, as mentioned in the information about the amalgamated source from Jsoncpp. Modify this to your system within the script in line 43, as shown below:
 ```python
-os.system('time g++ -DOUTPUT_FILE=\\"{2}\\" /path/to/jsoncpp-master/jsoncpp-master/dist/jsoncpp.cpp -I/path/to/jsoncpp-master/jsoncpp-master/dist/json  -O3 -fopenmp -x c++ {0} -o {1} && {1}'.format(file_name,exe_file,json_file))
+os.system('time g++ -DOUTPUT_FILE=\\"{2}\\" /path/to/jsoncpp-master/dist/jsoncpp.cpp -I/path/to/jsoncpp-master/dist/json  -O3 -fopenmp -x c++ {0} -o {1} && {1}'.format(file_name,exe_file,json_file))
 ```
 
 To call on the expert knowledge optimization, run the file opt_human.py, which bases its model selection on the elimination of dependencies.
 
-The repository contains the following files:
+The EMT file in the repository contains the following files:
 
 * EMT_incbw_ruleX.txt: A list of each transition in the full backward model -> these files are are a starting point to setup the expert knowledge optimization.
 
@@ -81,8 +84,7 @@ The repository contains the following files:
 
 * sort_list.py: Takes the files EMT_incbw_ruleX.txt as input and removes the desired dependencies (excluding self-dependencies) which are then saved in the files EMT_userguided_ruleX.txt. If we translate these files into rules, the resulting string would no longer include the species that are eliminated in this file. Self-dependencies, however, are still possible in these lists and are then eliminated in the opt_human.py file.
 
-----------------------------------------------------------------------------------------
-
+#
 
 The output is a folder "optimization_output" that stores the results for each created model: 
  * the files "fitness-XXX-XXX.txt" contains the information for each created model. The first three numbers determine the generation of the genetic algorithm, the second three numbers determine the individual of the population. The file itself contains the various random executions of the genetic algorithm (equivalent to the variable parallel_sims).
