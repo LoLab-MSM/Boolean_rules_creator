@@ -35,9 +35,13 @@ In addition, you will need a current version of g++ on your computer to run the 
 
 For the ES kinetics model, there is only one possibly steady state outcome, so the Boolean ruleset can be generated without optimization. In this example, only the creating_rules function from rule_creator.py is used to recreate the forward, backwards, and expert-guided rulesets.
 <div style="page-break-after: always"></div>
-The ES folder contains a Jupyter Notebook ES_rules.ipynb which contains a full walkthrough of the example.
+The ES folder contains the following files:
 
-This script loads in the file 'ES_steady_states.json', which contains the possible initial and steady states in the folllowing format:
+* Jupyter Notebook ES_rules.ipynb which contains a full walkthrough of the example (references the file fig1b.jpg)
+* rule_creator.py which contains the creating_rules function
+* ES_rules.py is a short Python script that calls the creating function for the ES data
+* ES_steady_states.json is the input file with the possible initial and steady states in the following format:
+
 ```
 "[initial state1]:
     [[[steady state2],100]],
@@ -53,9 +57,9 @@ The number accompanying each pair of states is the frequency with which the inti
 For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list.
 
 In order to run the optimization, use the 'optimization.py' file, which includes:
-  * the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
-  * the translation of the newly created rules to C++ and the compilation of the resulting file based on the template c_simluator.cpp_template
-  * the execution of the DEAP based genetic algorithm to find an optimal model
+* the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
+* the translation of the newly created rules to C++ and the compilation of the resulting file based on the template c_simluator.cpp_template
+* the execution of the DEAP based genetic algorithm to find an optimal model
 
 In order for this file to run, installation of a C++ compiler is necessary. See the installation instructions above for more details. The path to this compiler must be included in the optimization.py script, as mentioned in the information about the amalgamated source from Jsoncpp. Modify this to your system within the script in line 43, as shown below:
 ```python
