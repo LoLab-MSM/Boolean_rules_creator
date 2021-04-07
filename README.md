@@ -54,7 +54,7 @@ The number accompanying each pair of states is the frequency with which the inti
 
 #
 ### EMT Transition
-For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list.
+For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list. Since the optimization process is a very computationally intense task, we didn't it fit to include a Jupyter notebook with a walkthrough. Instead, we recommend setting up the process on a server.
 
 In order to run the optimization, use the 'optimization.py' file, which includes:
 * the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
