@@ -33,7 +33,10 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
     generate rules based on steady states, backwards paths, and removal of
     incorrect transitions included in the blacklist.
     """
+    
+    print(backward_paths)
     n = len(active_SS)
+    
     distance = [None]*len(worklist)
     # create a list from which the rules will be taken:
     # first entry contains the states, where x1 needs to be changed
@@ -45,6 +48,9 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
     for j in worklist:
         distance[d] = sum(abs(np.subtract(active_SS, j)))
         d = d+1
+
+    print(distance)
+    #exit()
 
     # create a mask to sort all elements according to their distances to the main steady state
     mask = []
@@ -65,29 +71,51 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
         if (active_element, node_to_flip) not in exclude:
             rulelist[node_to_flip].append(active_element)
 
-    # choose the active element from worklist
-    # use elements that are one flip closer to the steady state
-    # and one flip further away to include possible pathways that might only be available via a detour
-    for k in range(n-1):
-        wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
-        # determine if there exists a state one flip further away from the SS
-        if len(mask) > k+2:
-            wl_one_step_farther = [worklist[mask[k+2][i]] for i in range(len(np.array(worklist)[mask[k+2]]))]
-        else:
-            wl_one_step_farther = []
-        for target_element in wl_one_step_closer+wl_one_step_farther:
-            for j in range(len(np.array(worklist)[mask[k+1]])):
-                second_element = np.array(worklist)[mask[k+1][j]]
-                diff_flipstate = abs(np.subtract(second_element, target_element))
-                # if the distance between the active one-flip-state and the two-flip-state is 1,
-                # associate the two-flip-state with the one-flip state and eliminate from list
-                if sum(diff_flipstate) == 1:
-                    # state is assigned to the active state -> get index of flip
-                    node_to_flip = tuple(diff_flipstate).index(1)
-                    if (tuple(second_element), node_to_flip) not in exclude:
-                        rulelist[node_to_flip].append(tuple(second_element))
-                        if backward_paths == 1 and (tuple(target_element), node_to_flip) not in exclude:
-                            rulelist[node_to_flip].append(tuple(target_element))
+    if backward_paths == 0:
+        # choose the active element from worklist
+        # use elements that are one flip closer to the steady state
+        for k in range(n-1):
+            wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
+            for target_element in wl_one_step_closer:
+                for j in range(len(np.array(worklist)[mask[k+1]])):
+                    second_element = np.array(worklist)[mask[k+1][j]]
+                    diff_flipstate = abs(np.subtract(second_element, target_element))
+                    # if the distance between the active one-flip-state and the two-flip-state is 1,
+                    # associate the two-flip-state with the one-flip state and eliminate from list
+                    if sum(diff_flipstate) == 1:
+                        # state is assigned to the active state -> get index of flip
+                        node_to_flip = tuple(diff_flipstate).index(1)
+                        if (tuple(second_element), node_to_flip) not in exclude:
+                            rulelist[node_to_flip].append(tuple(second_element))
+    
+    elif backward_paths == 1:
+        # choose the active element from worklist
+        # use elements that are one flip closer to the steady state
+        # and one flip further away to include possible pathways that might only be available via a detour
+        for k in range(n-1):
+            wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
+            # determine if there exists a state one flip further away from the SS
+            if len(mask) > k+2:
+                wl_one_step_farther = [worklist[mask[k+2][i]] for i in range(len(np.array(worklist)[mask[k+2]]))]
+            else:
+                wl_one_step_farther = []
+            for target_element in wl_one_step_closer+wl_one_step_farther:
+                for j in range(len(np.array(worklist)[mask[k+1]])):
+                    second_element = np.array(worklist)[mask[k+1][j]]
+                    diff_flipstate = abs(np.subtract(second_element, target_element))
+                    # if the distance between the active one-flip-state and the two-flip-state is 1,
+                    # associate the two-flip-state with the one-flip state and eliminate from list
+                    if sum(diff_flipstate) == 1:
+                        # state is assigned to the active state -> get index of flip
+                        node_to_flip = tuple(diff_flipstate).index(1)
+                        if (tuple(second_element), node_to_flip) not in exclude:
+                            rulelist[node_to_flip].append(tuple(second_element))
+                            if (tuple(target_element), node_to_flip) not in exclude:
+                                rulelist[node_to_flip].append(tuple(target_element))
+    
+    else:
+        print('variable backwardpaths not set valid; for forward paths only, set variable to 0, for backward paths, set variable to 1')
+        exit()
 
     return rulelist
 
@@ -757,7 +785,7 @@ def creating_rules(fn, _symbols,backwardpaths):
 
 #This allows use of creating_rules function without running optimization.py
 if __name__ == '__main__':
-    creating_rules('modified_freq.json', ["x1","x2","x3","x4"])
+    creating_rules('ES_steady_states.json', ["x1","x2","x3","x4"], backwardpaths = 1)
 
 
 # fn = 'MM_4nodes_small.json')
