@@ -34,7 +34,7 @@ parallel_sims = 50
 
 #perform the asynchronous updating scheme by compiling the rules into a C++ file
 def randomized_runs():
-    str_rules, rule_list, file_name = creating_rules("modified_freq.json", symbols)
+    str_rules, rule_list, file_name = creating_rules("modified_freq.json", symbols,1)
     exe_file = '{}.bin'.format(file_name)
     json_file = '{}.json'.format(file_name)
     ###########################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!############################

@@ -1,6 +1,5 @@
 import itertools as it
 import tempfile
-
 import numpy as np
 import json
 import ast
@@ -17,6 +16,9 @@ import os
 # ==================rule creator==================
 
 def is_in_rule_list(elem, rulelist):
+    """
+    Check for input elem in rulelist, return boolean.
+    """
     for rule in rulelist:
         if elem in rule:
             return True
@@ -24,6 +26,13 @@ def is_in_rule_list(elem, rulelist):
 
 
 def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
+    """
+    Take steady states from input file and return rulelist.
+    
+    References creating_rules from SSInfo, CombSS, and Targets classes to 
+    generate rules based on steady states, backwards paths, and removal of
+    incorrect transitions included in the blacklist.
+    """
     n = len(active_SS)
     distance = [None]*len(worklist)
     # create a list from which the rules will be taken:
@@ -94,6 +103,9 @@ class IvInfo:
 
 
 def read_steady_states(fn):
+    """
+    Read in steady states from json file and return dictonaries data and SS. 
+    """
     with open(fn) as fs:
         data = json.load(fs)
     fs.close()
@@ -122,8 +134,10 @@ def print_SS(SS):
         print('\t')
 
 
-# check, if a state leads to a non-steady-state
 def check_ss(SS):
+    """
+    Check if a state leads to a non-steady state.
+    """
     flag = 0
     ss_list = []
     for ss, ivilist in SS.items():
@@ -146,11 +160,17 @@ def check_ss(SS):
 # -------check if every target can be reached by the full pathway----------------
 
 def is_transition_valid(x, y, blacklist):
+    """
+    Check if a transition from x to y is in blacklist.
+    """
     node_to_flip = list(abs(np.subtract(x, y))).index(1)
     return (x, node_to_flip) not in blacklist
 
 
 def get_accessible_states(x, lst, blacklist):
+    """
+    Remove transitions in blacklist using is_transition_valid function.
+    """
     # here we have to use blacklist so that we do not generate transitions that are forbidden
     return [y for y in lst if sum(abs(np.subtract(x, y))) == 1 and is_transition_valid(x, y, blacklist)]
 
@@ -223,6 +243,9 @@ def get_freq(iv, SS, data):
 # Store specific ss and all additional states that eventually end up
 # in that steady states
 class Targets:
+    """ 
+    Targets are all states network should be able to reach. 
+    """
     def __init__(self, _ss, _targets):
         self.ss = _ss
         self.targets = _targets
@@ -289,6 +312,9 @@ class Targets:
 
 
 class CombSS:
+    """
+    CombSS objects hold SS and targets with their corresponding initial values.
+    """
     def __init__(self, _sss, _ivs):
         self.ivs = _ivs
         self.targets = [Targets(ss, [ss]) for ss in _sss]
@@ -328,6 +354,9 @@ class CombSS:
 
 
 class SSInfo:
+    """
+    SSInfo class holds the full list of all objects.
+    """
     def __init__(self, data):
         self.comb_steadystates = []
         self.data = data
@@ -527,6 +556,9 @@ def self_elimination(rule_list, pos, not_elim, perc):
 
 
 def select_rules_human_guided(perc, _symbols):
+    """
+    Use output files preprocessed by sort_list.py to return rules with human input.
+    """
     print("perc full: ", perc)
     for i in range(len(perc)):
         if perc[i]==1:
@@ -637,7 +669,21 @@ def select_rules_human_guided(perc, _symbols):
 
 # =================create rules with read-in data======================
 
-def creating_rules(fn, _symbols):
+def creating_rules(fn, _symbols,backwardpaths):
+    """
+    Take steady states from input file and return list of rules.
+    
+    References creating_rules from SSInfo, CombSS, and Targets classes to 
+    generate rules based on steady states, backwards paths, and removal of
+    incorrect transitions included in the blacklist.
+
+    Rules are simplified with Boolean algebra using the Sympy library.
+
+    Returns a list of rules for each symbol written out (str_rules) and in 
+    boolean representation (simple_rulelist) and the name of the C++ file 
+    generated (fs_cpp.name).
+    """
+
     global symbols
     symbols = _symbols
     a = time()
@@ -648,7 +694,7 @@ def creating_rules(fn, _symbols):
     ss_info = SSInfo(data)
 
     print('create rules \n')
-    rulelist = ss_info.create_rules(backwardpaths=1, blacklist=[])
+    rulelist = ss_info.create_rules(backwardpaths=backwardpaths, blacklist=[])
 
     n = len(symbols)
     blacklisted  = [(x,6) for x in it.product(range(2), repeat=n)]
@@ -668,7 +714,7 @@ def creating_rules(fn, _symbols):
 
     rules = ['' for i in range(n)]
 
-    # Sympy
+    # Sympy library is used here to parse the rules and simpify with Boolean algebra
     str_rules = ""
     str_rules_cpp = ""
     for k in range(n):
@@ -709,8 +755,16 @@ def creating_rules(fn, _symbols):
 
     return str_rules, simple_rulelist, fs_cpp.name
 
-
+#This allows use of creating_rules function without running optimization.py
 if __name__ == '__main__':
     creating_rules('modified_freq.json', ["x1","x2","x3","x4"])
 
 
+# fn = 'MM_4nodes_small.json')
+# symbols = ['EN', 'S', 'ES', 'P']
+
+# creating_rules(fn,symbols)
+
+# print(str_rules)
+# print(simple_rulelist)
+# print(fs_cpp.name)
