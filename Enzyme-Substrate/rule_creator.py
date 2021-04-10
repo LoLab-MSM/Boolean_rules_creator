@@ -25,7 +25,7 @@ def is_in_rule_list(elem, rulelist):
     return False
 
 
-def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
+def rule_creator(worklist, active_SS, backward_paths, exclude=[], addlist=[]):
     """
     Take steady states from input file and return rulelist.
     
@@ -33,7 +33,10 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
     generate rules based on steady states, backwards paths, and removal of
     incorrect transitions included in the blacklist.
     """
+    
+    #print(backward_paths)
     n = len(active_SS)
+    
     distance = [None]*len(worklist)
     # create a list from which the rules will be taken:
     # first entry contains the states, where x1 needs to be changed
@@ -45,6 +48,9 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
     for j in worklist:
         distance[d] = sum(abs(np.subtract(active_SS, j)))
         d = d+1
+
+    #print(distance)
+    #exit()
 
     # create a mask to sort all elements according to their distances to the main steady state
     mask = []
@@ -65,29 +71,56 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[]):
         if (active_element, node_to_flip) not in exclude:
             rulelist[node_to_flip].append(active_element)
 
-    # choose the active element from worklist
-    # use elements that are one flip closer to the steady state
-    # and one flip further away to include possible pathways that might only be available via a detour
-    for k in range(n-1):
-        wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
-        # determine if there exists a state one flip further away from the SS
-        if len(mask) > k+2:
-            wl_one_step_farther = [worklist[mask[k+2][i]] for i in range(len(np.array(worklist)[mask[k+2]]))]
-        else:
-            wl_one_step_farther = []
-        for target_element in wl_one_step_closer+wl_one_step_farther:
-            for j in range(len(np.array(worklist)[mask[k+1]])):
-                second_element = np.array(worklist)[mask[k+1][j]]
-                diff_flipstate = abs(np.subtract(second_element, target_element))
-                # if the distance between the active one-flip-state and the two-flip-state is 1,
-                # associate the two-flip-state with the one-flip state and eliminate from list
-                if sum(diff_flipstate) == 1:
-                    # state is assigned to the active state -> get index of flip
-                    node_to_flip = tuple(diff_flipstate).index(1)
-                    if (tuple(second_element), node_to_flip) not in exclude:
-                        rulelist[node_to_flip].append(tuple(second_element))
-                        if backward_paths == 1 and (tuple(target_element), node_to_flip) not in exclude:
-                            rulelist[node_to_flip].append(tuple(target_element))
+    if backward_paths == 0:
+        # for forward pathways, additional transitions are possible
+        
+        for add in addlist:
+            rulelist[add[1]].append(add[0])
+            
+        # choose the active element from worklist
+        # use elements that are one flip closer to the steady state
+        for k in range(n-1):
+            wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
+            for target_element in wl_one_step_closer:
+                for j in range(len(np.array(worklist)[mask[k+1]])):
+                    second_element = np.array(worklist)[mask[k+1][j]]
+                    diff_flipstate = abs(np.subtract(second_element, target_element))
+                    # if the distance between the active one-flip-state and the two-flip-state is 1,
+                    # associate the two-flip-state with the one-flip state and eliminate from list
+                    if sum(diff_flipstate) == 1:
+                        # state is assigned to the active state -> get index of flip
+                        node_to_flip = tuple(diff_flipstate).index(1)
+                        if (tuple(second_element), node_to_flip) not in exclude:
+                            rulelist[node_to_flip].append(tuple(second_element))
+    
+    elif backward_paths == 1:
+        # choose the active element from worklist
+        # use elements that are one flip closer to the steady state
+        # and one flip further away to include possible pathways that might only be available via a detour
+        for k in range(n-1):
+            wl_one_step_closer = [worklist[mask[k][i]] for i in range(len(np.array(worklist)[mask[k]]))]
+            # determine if there exists a state one flip further away from the SS
+            if len(mask) > k+2:
+                wl_one_step_farther = [worklist[mask[k+2][i]] for i in range(len(np.array(worklist)[mask[k+2]]))]
+            else:
+                wl_one_step_farther = []
+            for target_element in wl_one_step_closer+wl_one_step_farther:
+                for j in range(len(np.array(worklist)[mask[k+1]])):
+                    second_element = np.array(worklist)[mask[k+1][j]]
+                    diff_flipstate = abs(np.subtract(second_element, target_element))
+                    # if the distance between the active one-flip-state and the two-flip-state is 1,
+                    # associate the two-flip-state with the one-flip state and eliminate from list
+                    if sum(diff_flipstate) == 1:
+                        # state is assigned to the active state -> get index of flip
+                        node_to_flip = tuple(diff_flipstate).index(1)
+                        if (tuple(second_element), node_to_flip) not in exclude:
+                            rulelist[node_to_flip].append(tuple(second_element))
+                            if (tuple(target_element), node_to_flip) not in exclude:
+                                rulelist[node_to_flip].append(tuple(target_element))
+    
+    else:
+        print('variable backwardpaths not set valid; for forward paths only, set variable to 0, for backward paths, set variable to 1')
+        exit()
 
     return rulelist
 
@@ -110,8 +143,8 @@ def read_steady_states(fn):
         data = json.load(fs)
     fs.close()
 
-    print('\t')
-    print("data: ", data)
+    #print('\t')
+    #print("data: ", data)
 
     SS = {}
     for striv, sslist in data.items():
@@ -257,7 +290,7 @@ class Targets:
         return reachable
 
     def eliminate_transitions(self, rules, ivs, freq, blacklist):
-        print('eliminate_transitions calling')
+        #print('eliminate_transitions calling')
         ct = 0
         maxrules = 6
         perc = math.floor(100/maxrules)
@@ -297,17 +330,17 @@ class Targets:
         return new_rules
 
 
-    def create_rules(self, available_states, frequencies, backwardpaths, blacklist):
+    def create_rules(self, available_states, frequencies, backwardpaths, blacklist, addlist):
         rule_list = [[] for i in symbols]
         a = time()
         for ss in self.targets:
-            print('tgts: {}', len(self.targets), len(available_states), len(ss), backwardpaths, blacklist)
-            rules = rule_creator(worklist=available_states, active_SS=ss, backward_paths=backwardpaths, exclude=blacklist)
+            #print('tgts: {}', len(self.targets), len(available_states), len(ss), backwardpaths, blacklist)
+            rules = rule_creator(worklist=available_states, active_SS=ss, backward_paths=backwardpaths, exclude=blacklist, addlist = addlist)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
         b = time()
         rule_list = self.eliminate_transitions(rule_list, available_states, frequencies, blacklist)
-        print('cri {} {}'.format(b-a,time()-b))
+        #print('cri {} {}'.format(b-a,time()-b))
         return rule_list
 
 
@@ -343,11 +376,11 @@ class CombSS:
                 print('\t')
                 exit()
 
-    def create_rules(self, backwardpaths, blacklist, data):
+    def create_rules(self, backwardpaths, blacklist, addlist, data):
         rule_list = [[] for i in symbols]
         for tgt in self.targets:
             frequencies = [get_freq(iv, tgt.ss, data) for iv in self.ivs]
-            rules = tgt.create_rules(self.ivs, frequencies, backwardpaths, blacklist)
+            rules = tgt.create_rules(self.ivs, frequencies, backwardpaths, blacklist, addlist)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
         return rule_list
@@ -361,10 +394,10 @@ class SSInfo:
         self.comb_steadystates = []
         self.data = data
         # create list of single and multiple steady states
-        print('\t\t')
-        print('============================')
-        print('Start creating SSinfo object')
-        print('\t')
+        #print('\t\t')
+        #print('============================')
+        #print('Start creating SSinfo object')
+        #print('\t')
         for str_iv, ssfreq in data.items():
             iv = tuple(ast.literal_eval(str_iv))
             sss = set([tuple(x[0]) for x in ssfreq])
@@ -373,7 +406,7 @@ class SSInfo:
             self.add_or_create_entry(sss, iv)  # append entries to comb_steadystates
 
         # add targets for double and higher SS
-        print('Populating the target entries.')
+        #print('Populating the target entries.')
         for css in self.comb_steadystates:
             if len(css.sss()) >= 2:
                 for css2 in self.comb_steadystates:
@@ -383,22 +416,22 @@ class SSInfo:
                             print('\tto target ss={} appending {}'.format(tgts2.ss, css2.ivs))
                             css.append_target(tgts2.ss, css2.ivs)
 
-        print('Finished creating SSInfo object.')
-        print('================================')
+        #print('Finished creating SSInfo object.')
+        #print('================================')
 
     def check_reachability(self, blacklist): 
         for css in self.comb_steadystates:
             css.check_reachability(blacklist) 
 
-    def create_rules(self, backwardpaths, blacklist): 
-        print(len(self.data),len(symbols))
+    def create_rules(self, backwardpaths, blacklist, addlist): 
+        #print(len(self.data),len(symbols))
         a = time()
         rule_list = [[] for i in symbols]
         for css in self.comb_steadystates:
-            rules = css.create_rules(backwardpaths, blacklist, self.data)
+            rules = css.create_rules(backwardpaths, blacklist, addlist, self.data)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
-        print('rk took: {}'.format(time()-a))
+        #print('rk took: {}'.format(time()-a))
         return rule_list
 
     def add_or_create_entry(self, sss, iv):
@@ -669,7 +702,7 @@ def select_rules_human_guided(perc, _symbols):
 
 # =================create rules with read-in data======================
 
-def creating_rules(fn, _symbols,backwardpaths):
+def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
     """
     Take steady states from input file and return list of rules.
     
@@ -690,24 +723,38 @@ def creating_rules(fn, _symbols,backwardpaths):
 
     [data, SS] = read_steady_states(fn)
 
-    print_SS(SS)
+    #print_SS(SS)
     ss_info = SSInfo(data)
 
-    print('create rules \n')
-    rulelist = ss_info.create_rules(backwardpaths=backwardpaths, blacklist=[])
+
+    #blacklisted  = [(x,6) for x in it.product(range(2), repeat=n)]
+    #blacklisted += [(x,7) for x in it.product(range(2), repeat=n)]
+
+    '''
+    additional transitions for expert knowledge if started with forward paths
+    addlist = [((1, 1, 1, 0), 0), ((1, 1, 0, 0), 2)]
+    '''
+    ''' 
+    blacklist for getting expert knowledge ruleset: start with backwardpaths = 1
+    blacklist = [((1, 0, 1, 1), 0), ((1, 0, 1, 0), 0), ((1, 1, 1, 1), 0),
+                 ((1, 0, 1, 1), 1), ((1, 0, 1, 0), 1), ((0, 0, 1, 0), 1), ((0, 0, 1, 1), 1),
+                 ((1, 1, 0, 1), 2),
+                 ((1, 0, 1, 1), 3), ((1, 1, 0, 1), 3), ((0, 1, 1, 1), 3), ((1, 1, 1, 1), 3), ((0, 0, 1, 1), 3)]
+    '''
+    
+   # print('create rules \n')
+    rulelist = ss_info.create_rules(backwardpaths=backwardpaths, blacklist=blacklist, addlist=addlist)
 
     n = len(symbols)
-    blacklisted  = [(x,6) for x in it.product(range(2), repeat=n)]
-    blacklisted += [(x,7) for x in it.product(range(2), repeat=n)]
 
     simple_rulelist = [[] for _ in range(n)]
     for i in range(len(simple_rulelist)):
         simple_rulelist[i] = list(dict.fromkeys(rulelist[i]))
 
-    print(simple_rulelist)
+    #print(simple_rulelist)
 
-    for i in range(len(simple_rulelist)):
-        print("rule ", i, len(simple_rulelist[i]))
+    #for i in range(len(simple_rulelist)):
+        #print("rule ", i, len(simple_rulelist[i]))
 
 
     # ============== reorder/simplify rules ===============
@@ -738,11 +785,11 @@ def creating_rules(fn, _symbols,backwardpaths):
         else:
             rules[k] = symbols[k]
             str_rules_cpp += '    if(k=={0})\n        return x[{0}];\n'.format(k)
-        print('1: {}* = {}'.format(symbols[k], rules[k]))
+        #print('1: {}* = {}'.format(symbols[k], rules[k]))
         str_rule = '1: {}* = {}\n'.format(symbols[k], rules[k])
         str_rules += str_rule
 
-    print(str_rules_cpp)
+    #print(str_rules_cpp)
     with open("c_simulator.cpp_template") as fs_cpp:
         str_cpp = fs_cpp.read()
 
@@ -751,13 +798,13 @@ def creating_rules(fn, _symbols,backwardpaths):
     fs_cpp.flush()
     os.fsync(fs_cpp.fileno())
     fs_cpp.close()
-    print("generating rules took ", time()-a)
+    print("generating rules took ", time()-a,"seconds")
 
     return str_rules, simple_rulelist, fs_cpp.name
 
 #This allows use of creating_rules function without running optimization.py
 if __name__ == '__main__':
-    creating_rules('modified_freq.json', ["x1","x2","x3","x4"])
+    creating_rules('ES_steady_states.json', ["x1","x2","x3","x4"], backwardpaths = 0)
 
 
 # fn = 'MM_4nodes_small.json')
