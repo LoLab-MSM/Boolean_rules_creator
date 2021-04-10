@@ -34,7 +34,7 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[], addlist=[]):
     incorrect transitions included in the blacklist.
     """
     
-    print(backward_paths)
+    #print(backward_paths)
     n = len(active_SS)
     
     distance = [None]*len(worklist)
@@ -49,7 +49,7 @@ def rule_creator(worklist, active_SS, backward_paths, exclude=[], addlist=[]):
         distance[d] = sum(abs(np.subtract(active_SS, j)))
         d = d+1
 
-    print(distance)
+    #print(distance)
     #exit()
 
     # create a mask to sort all elements according to their distances to the main steady state
@@ -143,8 +143,8 @@ def read_steady_states(fn):
         data = json.load(fs)
     fs.close()
 
-    print('\t')
-    print("data: ", data)
+    #print('\t')
+    #print("data: ", data)
 
     SS = {}
     for striv, sslist in data.items():
@@ -290,7 +290,7 @@ class Targets:
         return reachable
 
     def eliminate_transitions(self, rules, ivs, freq, blacklist):
-        print('eliminate_transitions calling')
+        #print('eliminate_transitions calling')
         ct = 0
         maxrules = 6
         perc = math.floor(100/maxrules)
@@ -334,13 +334,13 @@ class Targets:
         rule_list = [[] for i in symbols]
         a = time()
         for ss in self.targets:
-            print('tgts: {}', len(self.targets), len(available_states), len(ss), backwardpaths, blacklist)
+            #print('tgts: {}', len(self.targets), len(available_states), len(ss), backwardpaths, blacklist)
             rules = rule_creator(worklist=available_states, active_SS=ss, backward_paths=backwardpaths, exclude=blacklist, addlist = addlist)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
         b = time()
         rule_list = self.eliminate_transitions(rule_list, available_states, frequencies, blacklist)
-        print('cri {} {}'.format(b-a,time()-b))
+        #print('cri {} {}'.format(b-a,time()-b))
         return rule_list
 
 
@@ -394,10 +394,10 @@ class SSInfo:
         self.comb_steadystates = []
         self.data = data
         # create list of single and multiple steady states
-        print('\t\t')
-        print('============================')
-        print('Start creating SSinfo object')
-        print('\t')
+        #print('\t\t')
+        #print('============================')
+        #print('Start creating SSinfo object')
+        #print('\t')
         for str_iv, ssfreq in data.items():
             iv = tuple(ast.literal_eval(str_iv))
             sss = set([tuple(x[0]) for x in ssfreq])
@@ -406,7 +406,7 @@ class SSInfo:
             self.add_or_create_entry(sss, iv)  # append entries to comb_steadystates
 
         # add targets for double and higher SS
-        print('Populating the target entries.')
+        #print('Populating the target entries.')
         for css in self.comb_steadystates:
             if len(css.sss()) >= 2:
                 for css2 in self.comb_steadystates:
@@ -416,22 +416,22 @@ class SSInfo:
                             print('\tto target ss={} appending {}'.format(tgts2.ss, css2.ivs))
                             css.append_target(tgts2.ss, css2.ivs)
 
-        print('Finished creating SSInfo object.')
-        print('================================')
+        #print('Finished creating SSInfo object.')
+        #print('================================')
 
     def check_reachability(self, blacklist): 
         for css in self.comb_steadystates:
             css.check_reachability(blacklist) 
 
     def create_rules(self, backwardpaths, blacklist, addlist): 
-        print(len(self.data),len(symbols))
+        #print(len(self.data),len(symbols))
         a = time()
         rule_list = [[] for i in symbols]
         for css in self.comb_steadystates:
             rules = css.create_rules(backwardpaths, blacklist, addlist, self.data)
             for k in range(len(symbols)):
                 rule_list[k] += rules[k]
-        print('rk took: {}'.format(time()-a))
+        #print('rk took: {}'.format(time()-a))
         return rule_list
 
     def add_or_create_entry(self, sss, iv):
@@ -723,7 +723,7 @@ def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
 
     [data, SS] = read_steady_states(fn)
 
-    print_SS(SS)
+    #print_SS(SS)
     ss_info = SSInfo(data)
 
 
@@ -742,7 +742,7 @@ def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
                  ((1, 0, 1, 1), 3), ((1, 1, 0, 1), 3), ((0, 1, 1, 1), 3), ((1, 1, 1, 1), 3), ((0, 0, 1, 1), 3)]
     '''
     
-    print('create rules \n')
+   # print('create rules \n')
     rulelist = ss_info.create_rules(backwardpaths=backwardpaths, blacklist=blacklist, addlist=addlist)
 
     n = len(symbols)
@@ -751,10 +751,10 @@ def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
     for i in range(len(simple_rulelist)):
         simple_rulelist[i] = list(dict.fromkeys(rulelist[i]))
 
-    print(simple_rulelist)
+    #print(simple_rulelist)
 
-    for i in range(len(simple_rulelist)):
-        print("rule ", i, len(simple_rulelist[i]))
+    #for i in range(len(simple_rulelist)):
+        #print("rule ", i, len(simple_rulelist[i]))
 
 
     # ============== reorder/simplify rules ===============
@@ -785,11 +785,11 @@ def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
         else:
             rules[k] = symbols[k]
             str_rules_cpp += '    if(k=={0})\n        return x[{0}];\n'.format(k)
-        print('1: {}* = {}'.format(symbols[k], rules[k]))
+        #print('1: {}* = {}'.format(symbols[k], rules[k]))
         str_rule = '1: {}* = {}\n'.format(symbols[k], rules[k])
         str_rules += str_rule
 
-    print(str_rules_cpp)
+    #print(str_rules_cpp)
     with open("c_simulator.cpp_template") as fs_cpp:
         str_cpp = fs_cpp.read()
 
@@ -798,7 +798,7 @@ def creating_rules(fn, _symbols,backwardpaths, blacklist=[], addlist=[]):
     fs_cpp.flush()
     os.fsync(fs_cpp.fileno())
     fs_cpp.close()
-    print("generating rules took ", time()-a)
+    print("generating rules took ", time()-a,"seconds")
 
     return str_rules, simple_rulelist, fs_cpp.name
 
