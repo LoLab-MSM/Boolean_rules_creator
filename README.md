@@ -54,7 +54,8 @@ The number accompanying each pair of states is the frequency with which the inti
 
 #
 ### EMT Transition
-For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list. Since the optimization process is a very computationally intense task, we didn't it fit to include a Jupyter notebook with a walkthrough. Instead, we recommend setting up the process on a server.
+For models with more than one steady state, as seen with the EMT model in the paper, unsupervised model optimization is used to generate the correct rule list. Since the optimization process is a very computationally intense task, we didn't it fit to include a Jupyter notebook with a walkthrough. Instead, we recommend setting up the process on a server. 
+Also, we have not enabled forward rules and addition lists in the optimization run (as seen in the ES Jupyter notebook example) due to performance issues, but also because adding transitions can lead to deletion of or changes to attractor states. It is safer to begin with the backward paths and remove transitions while checking to ensure that each intial state retains a path to its attractor state.
 
 In order to run the optimization, use the 'optimization.py' file, which includes:
 * the execution of the rule creation from the file rule_creator.py using the function creationg_rules()
